@@ -1,7 +1,7 @@
-function [GeomObj,massObj,out] = fuselage_myAircraft(obj)
-% fuselage_myAircraft
+function [GeomObj,massObj,out] = fuselage(obj)
+% fuselage
 % Same structure as your B777-based code, but filled for YOUR aircraft values:
-% MTOW 530 t, Fuel 180 t, OEW 200 t, Span 84.7 m, Lf 76.3 m, D 6.5 m, etc.
+% MTOW 530 t, Fuel 180 t, OEW 200 t, Span 71.0 m, Lf 76.3 m, D 6.5 m, etc.
 %
 % IMPORTANT:
 % Your table does NOT include cockpit length, cabin length split, cruise Mach, or M_c.
@@ -15,7 +15,7 @@ def.MTOM_kg      = 530e3;     % 530 tonnes
 def.Fuel_kg      = 180e3;     % 180 tonnes
 def.OEW_kg       = 200e3;     % 200 tonnes (not used directly here)
 def.Payload_kg   = 150e3;     % 150 tonnes (not used directly here)
-def.Span_m       = 84.7;      % m
+def.Span_m       = 71.0;      % m
 def.Lf_m         = 76.3;      % m (overall fuselage length)
 def.Diam_m       = 6.5;       % m (outer diameter)
 def.Radius_m     = def.Diam_m/2;
@@ -47,23 +47,25 @@ def.SysFactor = 2.0;
 % -------------------------------------------------------------------------
 
 % Fill obj fields if missing
-obj = fillDefault(obj,"MTOM",def.MTOM_kg);
-obj = fillDefault(obj,"Span",def.Span_m);
+if ~isobject(obj)
+    obj = fillDefault(obj,"MTOM",def.MTOM_kg);
+    obj = fillDefault(obj,"Span",def.Span_m);
+    obj = fillDefault(obj,"CabinRadius",def.Radius_m);
+    obj = fillDefault(obj,"CockpitLength",def.CockpitLength_m);
+    obj = fillDefault(obj,"CabinLength", def.Lf_m - obj.CockpitLength - 1.48*obj.CabinRadius);
+    obj = fillDefault(obj,"Mf_Fuel", def.Fuel_kg/def.MTOM_kg);
+    obj = fillDefault(obj,"Mf_TOC",  0.92);
+    obj = fillDefault(obj,"Mstar",   def.Mstar);
+end
 
-% Geometry fields expected by your original code
-obj = fillDefault(obj,"CabinRadius",def.Radius_m);
-obj = fillDefault(obj,"CockpitLength",def.CockpitLength_m);
-
-% To keep YOUR total length exactly, compute CabinLength from:
-% L_f = CockpitLength + CabinLength + 1.48*CabinRadius
-obj = fillDefault(obj,"CabinLength", def.Lf_m - obj.CockpitLength - 1.48*obj.CabinRadius);
-
-% Mass fractions expected by your original code
-obj = fillDefault(obj,"Mf_Fuel", def.Fuel_kg/def.MTOM_kg);   % Fuel/MTOW
-obj = fillDefault(obj,"Mf_TOC",  0.92);                      % default (edit if you know)
-obj = fillDefault(obj,"Mstar",   def.Mstar);
-if ~isfield(obj,"TLAR"); obj.TLAR = struct(); end
-obj.TLAR = fillDefault(obj.TLAR,"M_c",def.M_c);
+% Get M_c for calculations safely
+M_c_local = def.M_c;
+if (isstruct(obj) && isfield(obj,'TLAR') && isfield(obj.TLAR,'M_c'))
+    M_c_local = obj.TLAR.M_c;
+elseif (isobject(obj) && ~isempty(obj.TLAR) && isprop(obj.TLAR,'M_c'))
+    M_c_local = obj.TLAR.M_c;
+end
+if isempty(M_c_local); M_c_local = def.M_c; end
 
 % Unit constants (so this runs even if your SI struct is not globally defined)
 SI.ft    = 3.280839895;        % ft per m
@@ -99,7 +101,7 @@ b_w  = obj.Span * SI.ft;                  % wing span [ft]
 L_f_ft = L_f * SI.ft;                     % fuselage length [ft] (IMPORTANT: convert!)
 
 % Wing geometry influence (Raymer's K_ws) – keep your method
-SweepQtrChord = real(acosd(0.75 .* obj.Mstar ./ obj.TLAR.M_c)); % [deg]
+SweepQtrChord = real(acosd(0.75 .* obj.Mstar ./ M_c_local)); % [deg]
 tr  = -0.0083 * SweepQtrChord + 0.4597;                          % taper estimate
 K_ws = 0.75 * ((1 + 2*tr) / (1 + tr)) * (b_w / L_f_ft) * tand(SweepQtrChord);
 

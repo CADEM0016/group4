@@ -21,6 +21,12 @@ end
 massObj(end+1) = cast.MassObj(Name="Fuel",m=obj.MTOM*obj.Mf_Fuel*opts.FuelFraction,...
                     X=[obj.WingPos+obj.c_ac*0.15,0]);
 % add payload mass
-massObj(end+1) = cast.MassObj(Name="Payload",m=obj.TLAR.Payload*opts.PayloadFraction,...
+m_pay = 150000; % Hardcoded for 747-8F
+massObj(end+1) = cast.MassObj(Name="Payload",m=m_pay*opts.PayloadFraction,...
                     X=[obj.CockpitLength+obj.CabinLength/2,0]);
+
+% add ballast/systems to reach target OEM (200t)
+m_current_oem = sum([massObj(~contains([massObj.Name],["Fuel","Payload"])).m]);
+m_ballast = max(0, 200000 - m_current_oem);
+massObj(end+1) = cast.MassObj(Name="Systems_Misc", m=m_ballast, X=[obj.WingPos,0]);
 end

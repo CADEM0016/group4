@@ -102,9 +102,9 @@ classdef TurboFan
             f = 1./(SI.lb/(SI.lbf*SI.hr)) * sfc_scaling; 
             BPR = 15; % Target BPR
             % Raymer estimations with high BPR
-            SFC_T0 = 19*exp(-0.12*BPR)*1e-6 * sfc_scaling; 
-            % SFC_cruise = 25*exp(-0.05*BPR)*1e-6 * sfc_scaling; 
+            % SFC_T0 should be in same SI units as SFC_cruise
             SFC_cruise = 1.4e-5 * sfc_scaling; % User specified value (approx 0.49 lb/lbf/hr)
+            SFC_T0 = 0.85 * SFC_cruise; % Take-off SFC is typically lower than cruise (SI)
             
             % Dimensions roughly estimated (very large)
             % Thrust approx 100k lbf class (445 kN)

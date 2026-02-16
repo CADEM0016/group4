@@ -2,8 +2,16 @@ function [GeomObj,massObj] = empenage(obj)
 % empenage - This function builds the empenage for a B777 like aircraft
 
 %% cruise condition
-M_c = obj.TLAR.M_c;
-[rho,a] = cast.atmos(obj.TLAR.Alt_cruise);
+M_c_fixed = 0.85;
+if isprop(obj.TLAR,'M_c'), M_c_fixed = obj.TLAR.M_c; end
+if isstruct(obj.TLAR) && isfield(obj.TLAR,'M_c'), M_c_fixed = obj.TLAR.M_c; end
+
+alt_c_fixed = 35000/3.28;
+if isprop(obj.TLAR,'Alt_cruise'), alt_c_fixed = obj.TLAR.Alt_cruise; end
+if isstruct(obj.TLAR) && isfield(obj.TLAR,'Alt_cruise'), alt_c_fixed = obj.TLAR.Alt_cruise; end
+
+M_c = M_c_fixed;
+[rho,a] = cast.atmos(alt_c_fixed);
 q_c = 0.5*rho*(M_c*a)^2;
 
 %% ---------------------------- HTP planform -----------------------------
@@ -14,14 +22,15 @@ L_h = obj.HtpPos - obj.WingPos;
 obj.HtpArea = obj.V_HT * obj.WingArea * obj.c_ac / L_h;
 
 AR = 5; % aspect ratio of the HTP
-SweepQtrChord = real(acosd(0.75.*obj.Mstar./obj.TLAR.M_c)); % quarter chord sweep angle
-tr =  -0.0083*SweepQtrChord + 0.4597; % taper ratio of outer portion of the wing
-b = sqrt(AR*obj.HtpArea); % calc HTP span
-c_rh = obj.HtpArea/((1+tr)/2*b); % calc HTP root chord
+SweepQtrChord = real(acosd(0.75.*obj.Mstar./M_c)); % quarter chord sweep angle
+% taper ratio of HTP
+tr =  -0.0083*SweepQtrChord + 0.4597; 
+b = max(1.0, sqrt(max(0.1, AR*obj.HtpArea))); % Ensure non-zero span
+c_rh = obj.HtpArea/(((1+tr)/2)*b); % calc HTP root chord
 
 % calc aero centre
-y_ac = fzero(@(y)trapz([0,y],interp1([0,b/2],[c_rh c_rh*tr],[0,y]))-(obj.HtpArea/4),b/4);
-obj.c_ach = interp1([0,b/2],[c_rh c_rh*tr],y_ac);
+y_ac = fzero(@(y)trapz([0,y],interp1([0,max(1e-6, b/2)],[c_rh, max(1e-6, c_rh*tr)],[0,y]))-(obj.HtpArea/4),b/4);
+obj.c_ach = interp1([0,max(1e-6, b/2)],[c_rh, max(1e-6, c_rh*tr)],y_ac);
 
 % calc coords
 ys = [-b/2 0 b/2]';

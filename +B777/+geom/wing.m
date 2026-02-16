@@ -1,37 +1,51 @@
 function [GeomObj,massObj] = wing(obj)
 
 % ---------------- WING PLANFORM PARAMETERS ----------------
+M_c_fixed = 0.85;
+if isprop(obj.TLAR,'M_c'), M_c_fixed = obj.TLAR.M_c; end
+if isstruct(obj.TLAR) && isfield(obj.TLAR,'M_c'), M_c_fixed = obj.TLAR.M_c; end
 
-SweepQtrChord = real(acosd(0.75.*obj.Mstar./obj.TLAR.M_c));
+SweepQtrChord = real(acosd(0.75.*obj.Mstar./M_c_fixed));
 tr = -0.0083*SweepQtrChord + 0.4597;
 
 b = obj.Span;
 
-% FIX 1: correct wing area calculation (kg/m² based)
-S = obj.MTOM / obj.WingLoading;
+% FIX 1: correct wing area calculation (using Weight/Loading)
+% obj.WingLoading is in N/m^2 (Pascal), so we need Weight = MTOM * g
+if isempty(obj.WingLoading) || obj.WingLoading == 0
+    % fallback to B747-8F standard loading (~880 kg/m^2)
+    S = obj.MTOM / 880;
+else
+    S = obj.MTOM * 9.81 / obj.WingLoading;
+end
 obj.WingArea = S;
 
-R_f = obj.CabinRadius;
-L2 = obj.KinkPos - R_f;
-L3 = obj.Span/2 - obj.KinkPos;
+b = max(obj.Span, 1.0); % Ensure non-zero span
+
+R_f = max(obj.CabinRadius, 0.1);
+KinkPos = max(obj.KinkPos, R_f + 0.5);
+L2 = KinkPos - R_f;
+L3 = b/2 - KinkPos;
 
 % Initial chord estimate
 c_r_star  = (S/b)/(1 + tr);
-c = (1-(1-tr)*obj.KinkPos/(b/2))*c_r_star;
+c = (1-(1-tr)*KinkPos/(b/2))*c_r_star;
 
 % Solve for correct area
 c = fminsearch(@(x)(get_areas(x,L2,L3,R_f,tr,SweepQtrChord)-S).^2,c);
 [~,c_t,c_r,A1,A2,A3] = get_areas(c,L2,L3,R_f,tr,SweepQtrChord);
 
-% ---------------- GEOMETRY ----------------
-
-ys = [-b/2 -obj.KinkPos -R_f 0 R_f obj.KinkPos b/2]';
-cs = [c_t,c,c_r,c_r,c_r,c,c_t]';
+% Use strictly unique and monotonic y-coordinates
+ys = [-b/2, -KinkPos, -R_f, 0, R_f, KinkPos, b/2]';
+[ys, uid] = unique(ys, 'stable');
+cs = [c_t, c, c_r, c_r, c_r, c, c_t]';
+cs = cs(uid);
 
 sweepLE = atand((tand(SweepQtrChord)*L3+c/4-c_t/4)/L3);
 sweepHalf = atand((tand(SweepQtrChord)*L3-c/4+c_t/4)/L3);
 
 x_le = [tand(sweepLE)*(L2+L3) tand(sweepLE)*L2 0 0 0 tand(sweepLE)*L2 tand(sweepLE)*(L2+L3)]';
+x_le = x_le(uid);
 x_le = -c_r.*0.25 + x_le;
 x_qtr = x_le + cs*0.25;
 x_te = cs + x_le;
@@ -44,8 +58,16 @@ As = [A3,A2,A1,A1,A2,A3];
 As_sum = [0,cumsum(As)];
 
 idx = find(As_sum>=S/4,1,'first')-1;
+if isempty(idx) || idx < 1, idx = 1; end
 
-y_ac = fminsearch(@(y)(trapz([ys(idx),y],interp1(ys(idx:idx+1),cs(idx:idx+1),[ys(idx),y]))-(S/4-As_sum(idx))).^2,mean(ys(idx:idx+1)));
+% Local segment properties for fminsearch
+y_seg = ys(idx:idx+1);
+c_seg = cs(idx:idx+1);
+
+% Ensure segment points are unique for interp1
+if y_seg(1) == y_seg(2), y_seg(2) = y_seg(1) + 1e-6; end
+
+y_ac = fminsearch(@(y)(trapz([y_seg(1),y],interp1(y_seg,c_seg,[y_seg(1),y]))-(S/4-As_sum(idx))).^2,mean(y_seg));
 
 obj.c_ac = interp1(ys,cs,y_ac);
 obj.x_ac = interp1(ys,x_qtr,y_ac);

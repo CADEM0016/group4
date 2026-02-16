@@ -4,8 +4,15 @@ function [GeomObj,massObj] = engine(obj)
 %% ---------------------- Engine Definition -----------------------------
 
 % Create UltraFan engine at cruise condition
+alt_c = 35000/3.28; % Default ~10668m
+if isstruct(obj.TLAR) && isfield(obj.TLAR,'Alt_cruise')
+    alt_c = obj.TLAR.Alt_cruise;
+elseif isobject(obj.TLAR) && isprop(obj.TLAR,'Alt_cruise')
+    alt_c = obj.TLAR.Alt_cruise;
+end
+
 obj.Engine = cast.eng.TurboFan.UltraFan(1, ...
-    obj.TLAR.Alt_cruise, obj.TLAR.M_c);
+    alt_c, obj.TLAR.M_c);
 
 % Scale engine to required thrust (4 engines total)
 obj.Engine = obj.Engine.Rubberise(obj.Thrust/4);
@@ -18,14 +25,14 @@ Xs = [-0.5,0.5;
        0.5,-0.5;
       -0.5,-0.5];
 
-Xs = Xs .* [obj.Engine.Length, obj.Engine.Diameter];
+Xs = Xs .* [obj.Engine.Length(1), obj.Engine.Diameter(1)];
 
-% engine positions
-y_in  = 0.30 * obj.Span/2;
-y_out = 0.60 * obj.Span/2;
+% engine positions (747-8F approximate)
+y_in  = 0.38 * obj.Span/2;
+y_out = 0.68 * obj.Span/2;
 
-% Longitudinal position 
-x_eng = obj.x_ac - 0.55 * obj.c_ac;
+% Longitudinal position (further forward of LE)
+x_eng = obj.x_ac - 0.75 * obj.c_ac;
 
 % Vertical offset from fuselage centerline
 z_offset = obj.CabinRadius + 2.0 * obj.Engine.Diameter;

@@ -45,7 +45,9 @@ EWF = EWF*fs(1);
 
 
 %% alternate mission analysis
-[rho,a,~,P] = cast.atmos(ADP.TLAR.Alt_alternate);
+alt_alt = 22e3./SI.ft;
+if isfield(ADP.TLAR,'Alt_alternate'), alt_alt = ADP.TLAR.Alt_alternate; end
+[rho,a,~,P] = cast.atmos(alt_alt);
 % [rho_s,a_s,~,P_s] = dcrg.aero.atmos(0);
 M_cruise = ADP.TLAR.M_c;
 
@@ -54,7 +56,8 @@ CD_c = ADP.AeroPolar.CD(CL_c);
 LD_c = CL_c/CD_c;
 
 % account for fact I don't model climb with an "effective" trip range
-altRange = ADP.TLAR.Range_alternate * 1;
+altRange = 200./SI.Nmile;
+if isfield(ADP.TLAR,'Range_alternate'), altRange = ADP.TLAR.Range_alternate; end
 
 fs(2) = exp(-altRange*9.81*ADP.Engine.TSFC(M_cruise,altRange)/(M_cruise*a*LD_c)); % Rearranged Brequet
 ts(2) = altRange/(M_cruise*a); % time taken
@@ -67,8 +70,10 @@ CL = EWF*M_TO*9.81/(1/2*rho*(a*Mach)^2*ADP.WingArea);
 CD = ADP.AeroPolar.CD(CL);
 LD = CL/CD;
 
-fs(3) = exp(-ADP.TLAR.Loiter*9.81*ADP.Engine.TSFC(Mach,0)/LD); % Snorri
-ts(3) = ADP.TLAR.Loiter; % time taken
+loit = 30./SI.min;
+if isfield(ADP.TLAR,'Loiter'), loit = ADP.TLAR.Loiter; end
+fs(3) = exp(-loit*9.81*ADP.Engine.TSFC(Mach,0)/LD); % Snorri
+ts(3) = loit; % time taken
 EWF = EWF*fs(3);
 
 %% Contingency

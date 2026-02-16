@@ -37,8 +37,8 @@ m_each = m_main_total / 4;
 % Positioning
 x_main = obj.x_ac + obj.c_ac*0.4;
 
-% Wing gear position
-y_wing = obj.Span/4;
+% Wing gear position (747-8F approx)
+y_wing = obj.Span * 0.32 / 2;
 
 % Body gear position
 y_body = obj.CabinRadius*0.8;
