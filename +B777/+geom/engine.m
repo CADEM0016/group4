@@ -21,8 +21,8 @@ Xs = [-0.5,0.5;
 Xs = Xs .* [obj.Engine.Length, obj.Engine.Diameter];
 
 % engine positions
-y_in  = 0.30 * obj.b/2;
-y_out = 0.60 * obj.b/2;
+y_in  = 0.30 * obj.Span/2;
+y_out = 0.60 * obj.Span/2;
 
 % Longitudinal position 
 x_eng = obj.x_ac - 0.55 * obj.c_ac;
