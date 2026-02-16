@@ -11,19 +11,25 @@ classdef AeroPolar
 
     methods
         function obj = AeroPolar(ADP)
-            %  CD0 estimate - 0.02
-            % This is an extremely crude assumption, but CD0 of A320 and B777 
-            % are similar and there is no clear trend across aircraft for 
-            % CD0 with MTOM for example. You'll need to use flate  plate 
-            % analogy + component method to deliver a class II/II.5 methodology 
-            obj.CD0 = 0.019; 
+            %  CD0 estimate 
+            %  If ADP has CD0 property (like 747), use it. otherwise use default B777
+            if isprop(ADP, 'CD0') && ~isempty(ADP.CD0)
+                obj.CD0 = ADP.CD0;
+            else
+                obj.CD0 = 0.019; % Default B777 fallback
+            end
 
             % calc AR
             AR = ADP.Span^2/ADP.WingArea;
 
-            % calc induced factor (10.2514/1.C036529 Eq.4)
-            Q = 1.05; P = 0.007;
-            obj.e = 1/(Q+P*pi*AR); % estimate of oswald efficency factor
+            % calc induced factor
+            if isprop(ADP, 'e') && ~isempty(ADP.e)
+                obj.e = ADP.e;
+            else
+                Q = 1.05; P = 0.007;
+                obj.e = 1/(Q+P*pi*AR); % Default B777 fallback
+            end
+            
             obj.Beta = 1/(pi*AR*obj.e);            
         end
 
