@@ -1,24 +1,70 @@
 function [GeomObj,massObj] = engine(obj)
-% engine - this function build the engines for a B777 like aircraft
-% engine is based upon a rubberised version of the GE90
+% engine - builds 4 UltraFan engines for a B747-8F configuration
 
-obj.Engine = cast.eng.TurboFan.GE90(1,obj.TLAR.Alt_cruise,obj.TLAR.M_c);
-obj.Engine = obj.Engine.Rubberise(obj.Thrust/2);
+%% ---------------------- Engine Definition -----------------------------
 
-% --------------------------- Create Geometry ----------------------------
-Xs = [-0.5,0.5;0.5,0.5;0.5,-0.5;-0.5,-0.5];
-Xs = Xs.*[obj.Engine.Length,obj.Engine.Diameter];
-offsetEng = [obj.x_ac-obj.c_ac*0.6,obj.CabinRadius + 1.75*obj.Engine.Diameter];
-GeomObj = cast.GeomObj(Name="EngineRight",Xs=Xs+offsetEng);
-GeomObj(2) = cast.GeomObj(Name="EngineLeft",Xs=Xs+offsetEng.*[1 -1]);
-% ------------------------- Create Mass Objects --------------------------
+% Create UltraFan engine at cruise condition
+obj.Engine = cast.eng.TurboFan.UltraFan(1, ...
+    obj.TLAR.Alt_cruise, obj.TLAR.M_c);
 
-% engine insatllation mass (Raymer 15.52)
-m_engi = 1.1*(2.575*(obj.Engine.Mass*SI.lb)^0.922)./SI.lb - obj.Engine.Mass;
-offsetPylon = offsetEng+[obj.Engine.Length/2,0];
+% Scale engine to required thrust (4 engines total)
+obj.Engine = obj.Engine.Rubberise(obj.Thrust/4);
 
-massObj         =   cast.MassObj(Name="Engine Right",m=obj.Engine.Mass,X=offsetEng);
-massObj(end+1)  =   cast.MassObj(Name="Engine Pylon Right",m=m_engi,X=offsetPylon);
-massObj(end+1)  =   cast.MassObj(Name="Engine Left",m=obj.Engine.Mass,X=offsetEng.*[1 -1]);
-massObj(end+1)  =   cast.MassObj(Name="Engine Pylon Left",m=m_engi,X=offsetPylon.*[1 -1]);
+%% ---------------------- Engine Geometry -------------------------------
+
+% Basic rectangular nacelle representation
+Xs = [-0.5,0.5;
+       0.5,0.5;
+       0.5,-0.5;
+      -0.5,-0.5];
+
+Xs = Xs .* [obj.Engine.Length, obj.Engine.Diameter];
+
+% engine positions
+y_in  = 0.30 * obj.b/2;
+y_out = 0.60 * obj.b/2;
+
+% Longitudinal position 
+x_eng = obj.x_ac - 0.55 * obj.c_ac;
+
+% Vertical offset from fuselage centerline
+z_offset = obj.CabinRadius + 2.0 * obj.Engine.Diameter;
+
+% Engine CG positions
+offset1 = [x_eng,  y_in];    % Right inboard
+offset2 = [x_eng,  y_out];   % Right outboard
+offset3 = [x_eng, -y_in];    % Left inboard
+offset4 = [x_eng, -y_out];   % Left outboard
+
+% Create geometry objects
+GeomObj(1) = cast.GeomObj(Name="Engine_R_In",  Xs=Xs+offset1);
+GeomObj(2) = cast.GeomObj(Name="Engine_R_Out", Xs=Xs+offset2);
+GeomObj(3) = cast.GeomObj(Name="Engine_L_In",  Xs=Xs+offset3);
+GeomObj(4) = cast.GeomObj(Name="Engine_L_Out", Xs=Xs+offset4);
+
+%% ---------------------- Mass Objects ----------------------------------
+
+% Raymer installation mass estimate (Eq. 15.52)
+m_install = 1.1 * (2.575 * (obj.Engine.Mass*SI.lb)^0.922) ...
+            / SI.lb - obj.Engine.Mass;
+
+% Assume pylon CG slightly forward of engine CG
+offsetP1 = offset1 + [obj.Engine.Length/2, 0];
+offsetP2 = offset2 + [obj.Engine.Length/2, 0];
+offsetP3 = offset3 + [obj.Engine.Length/2, 0];
+offsetP4 = offset4 + [obj.Engine.Length/2, 0];
+
+% Create mass objects
+massObj(1) = cast.MassObj(Name="Engine_R_In",  m=obj.Engine.Mass, X=offset1);
+massObj(2) = cast.MassObj(Name="Pylon_R_In",   m=m_install,        X=offsetP1);
+
+massObj(3) = cast.MassObj(Name="Engine_R_Out", m=obj.Engine.Mass, X=offset2);
+massObj(4) = cast.MassObj(Name="Pylon_R_Out",  m=m_install,        X=offsetP2);
+
+massObj(5) = cast.MassObj(Name="Engine_L_In",  m=obj.Engine.Mass, X=offset3);
+massObj(6) = cast.MassObj(Name="Pylon_L_In",   m=m_install,        X=offsetP3);
+
+massObj(7) = cast.MassObj(Name="Engine_L_Out", m=obj.Engine.Mass, X=offset4);
+massObj(8) = cast.MassObj(Name="Pylon_L_Out",  m=m_install,        X=offsetP4);
+
 end
