@@ -9,17 +9,17 @@ classdef ADP < handle
 
     properties
         MTOM    = 530000;   % Maximum take-off mass [kg] (updated)
-        OEM     = 205000;   % Operational Empty Mass [kg]
-        Mf_Ldg  = 0.85;     % maximum landing mass fraction (Estimate)
-        Mf_Fuel = 0.45;     % fuel mass fraction (Estimate) % Double check this values !
+        OEM     = 200000;   % Operational Empty Mass [kg]
+        Mf_Ldg  = 0.70;     % maximum landing mass fraction (Estimate)
+        Mf_Fuel = 0.34;     % fuel mass fraction (Estimate) % Double check this values !
         Mf_TOC  = 0.97;     % "top of climb" mass fraction  !
-        Mf_res  = 0.05;     % "Reserve Fuel" mass fraction  !
+        Mf_res  = 0.038;     % "Reserve Fuel" mass fraction  !
     end
 
     % constraint Paramters
     properties
-        ThrustToWeightRatio = 0.27; % Approx for 747
-        WingLoading         = 700;  % Approx kg/m^2
+        ThrustToWeightRatio = 0.31; % Approx for 747
+        WingLoading         = 883;  % Approx kg/m^2
     end
 
     % Aerodynamic
@@ -40,7 +40,7 @@ classdef ADP < handle
         CL_LDG = 0.8;     % CL during ground run on landing
         CL_cruise = 0.5;  % CL during cruise
 
-        LD_c = 16.27;        % Lift to drag ratio in cruise (updated)
+        LD_c = 1;        % Lift to drag ratio in cruise (updated)
         LD_app = 10;      % Lift to drag ratio during landing
         CD0 = 0.0171;     % Zero-lift drag coefficent (from component buildup)
         e = 0.810;        % Oswald Efficency Factor (from Q+P formula)
