@@ -1,29 +1,64 @@
 function [GeomObj,massObj] = landingGear(obj)
-% empenage - This function builds the landing gear for a B777 like aircraft
 
-% ------------------------------ Parameters ------------------------------
-M_ldg = obj.MTOM*obj.Mf_Ldg*SI.lb;
-L_ldg = obj.Engine.Diameter * 1.2; % length of landing gear
+% Landing gear model for heavy 4-engine freighter (~530 t class)
 
+% ------------------------------ PARAMETERS ------------------------------
 
-% -------------------------- Nose Landing Gear ---------------------------
-m_ldg = 0.125*(1*1.5*M_ldg)^0.566*(L_ldg*SI.ft)^0.845; % Raymer 15.51
-m_ldg = m_ldg ./ SI.lb; % convert to kg
+% Landing mass (kg)
+M_ldg = 370000;   
+
+% Main gear height (m) – required for UltraFan clearance
+L_main = 5.0;
+
+% Nose gear height (m)
+L_nose = 3.6;
+
+% -------------------------- NOSE LANDING GEAR ---------------------------
+
+% Raymer Eqn 15.51
+m_nose = 0.125*(1.5*M_ldg)^0.566*(L_nose*SI.ft)^0.845;
+m_nose = m_nose ./ SI.lb;   % kg
 
 Xwheel = [-0.5,0.25;0.5,0.25;0.5,-0.25;-0.5,-0.25];
 offset = [obj.CockpitLength,0];
 
 GeomObj = cast.GeomObj(Name="Nose Landing Gear",Xs=Xwheel+offset);
-massObj = cast.MassObj(Name="Nose Landing Gear",m=m_ldg,X=offset);
+massObj = cast.MassObj(Name="Nose Landing Gear",m=m_nose,X=offset);
 
-% -------------------------- Main Landing Gear ---------------------------
+% -------------------------- MAIN LANDING GEAR ---------------------------
 
-m_ldg = 0.095*(1*1.5*M_ldg)^0.768*(L_ldg*SI.ft)^0.409;
-m_ldg = m_ldg ./ SI.lb; % convert to kg
-offset = [obj.x_ac + obj.c_ac*0.5,obj.CabinRadius + 0.5*obj.Engine.Diameter]; % gear sit just inside of engine...
+% Total main gear mass (Raymer scaling)
+m_main_total = 0.095*(1.5*M_ldg)^0.768*(L_main*SI.ft)^0.409;
+m_main_total = m_main_total ./ SI.lb;
 
-GeomObj(end+1) = cast.GeomObj(Name="Main Right Landing Gear",Xs=Xwheel+offset);
-massObj(end+1) = cast.MassObj(Name="Main Right Landing Gear",m=m_ldg,X=offset);
-GeomObj(end+1) = cast.GeomObj(Name="Main Left Landing Gear",Xs=Xwheel+offset.*[1 -1]);
-massObj(end+1) = cast.MassObj(Name="Main Left Landing Gear",m=m_ldg,X=offset.*[1 -1]);
+% 4 main gear units
+m_each = m_main_total / 4;
+
+% Positioning
+x_main = obj.x_ac + obj.c_ac*0.4;
+
+% Wing gear position
+y_wing = obj.WingSpan/4;
+
+% Body gear position
+y_body = obj.CabinRadius*0.8;
+
+% ---------- Wing Right ----------
+offset = [x_main, y_wing];
+GeomObj(end+1) = cast.GeomObj(Name="Main Wing Right",Xs=Xwheel+offset);
+massObj(end+1) = cast.MassObj(Name="Main Wing Right",m=m_each,X=offset);
+
+% ---------- Wing Left ----------
+GeomObj(end+1) = cast.GeomObj(Name="Main Wing Left",Xs=Xwheel+offset.*[1 -1]);
+massObj(end+1) = cast.MassObj(Name="Main Wing Left",m=m_each,X=offset.*[1 -1]);
+
+% ---------- Body Right ----------
+offset = [x_main, y_body];
+GeomObj(end+1) = cast.GeomObj(Name="Main Body Right",Xs=Xwheel+offset);
+massObj(end+1) = cast.MassObj(Name="Main Body Right",m=m_each,X=offset);
+
+% ---------- Body Left ----------
+GeomObj(end+1) = cast.GeomObj(Name="Main Body Left",Xs=Xwheel+offset.*[1 -1]);
+massObj(end+1) = cast.MassObj(Name="Main Body Left",m=m_each,X=offset.*[1 -1]);
+
 end
