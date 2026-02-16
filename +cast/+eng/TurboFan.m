@@ -90,6 +90,26 @@ classdef TurboFan
             f = 1./(SI.lb/(SI.lbf*SI.hr)); % to convert SFC from imperial to SI.
             obj = cast.eng.TurboFan(107e3,2.422,2.00,2331,0.3316*f,0.596*f,6);
         end
+        
+        function obj = UltraFan(sfc_scaling,alt_cruise,M_cruise)
+            arguments
+                sfc_scaling = 1;
+                alt_cruise = 35e3 ./ SI.ft
+                M_cruise = 0.85
+            end
+            % UltraFan (Rolls-Royce) Estimation
+            % High BPR geared turbofan
+            f = 1./(SI.lb/(SI.lbf*SI.hr)) * sfc_scaling; 
+            BPR = 15; % Target BPR
+            % Raymer estimations with high BPR
+            SFC_T0 = 19*exp(-0.12*BPR)*1e-6 * sfc_scaling; 
+            % SFC_cruise = 25*exp(-0.05*BPR)*1e-6 * sfc_scaling; 
+            SFC_cruise = 1.4e-5 * sfc_scaling; % User specified value (approx 0.49 lb/lbf/hr)
+            
+            % Dimensions roughly estimated (very large)
+            % Thrust approx 100k lbf class (445 kN)
+            obj = cast.eng.TurboFan(445e3, 5.0, 3.55, 9000, SFC_T0, SFC_cruise, BPR, alt_cruise, M_cruise);
+        end
     end
 end
 
