@@ -42,19 +42,62 @@ B777.UpdateAero(ADP);
 fprintf('Target Configuration Set.\n');
 
 % 4. Display Results
-fprintf('\n=== TARGET CONFIGURATION ===\n');
-fprintf('MTOM:      %.0f t\n', ADP.MTOM/1e3);
-fprintf('Fuel Mass: %.0f t\n', ADP.Mf_Fuel * ADP.MTOM/1e3);
-fprintf('OEM:       %.0f t\n', ADP.OEM/1e3);
-fprintf('Payload:   150 t\n');
+fprintf('\n=== TARGET CONFIGURATION RESULTS ===\n');
 
-% Check Aerodynamics
-CL_check = 0.5;
+% Robustly extract engine TSFC for table
+sfc_val = 0;
+if isprop(ADP, 'Engine') && ~isempty(ADP.Engine)
+    if iscell(ADP.Engine)
+        eObj = ADP.Engine{1};
+        if isprop(eObj, 'Engine') % Handle nested engine inside geom object
+            sfc_val = eObj.Engine.SFC_cruise;
+        elseif isprop(eObj, 'SFC_cruise')
+            sfc_val = eObj.SFC_cruise;
+        end
+    elseif isprop(ADP.Engine, 'SFC_cruise')
+        sfc_val = ADP.Engine.SFC_cruise;
+    end
+end
+
+% Create Parameter Summary Table
+Category = [
+    "Mass"; "Mass"; "Mass"; "Mass"; ...
+    "Geometry"; "Geometry"; "Geometry"; ...
+    "Engine"; "Engine"; "Engine"; "Engine"; ...
+    "Aerodynamics"; "Aerodynamics"; "Aerodynamics"
+]';
+
+Parameter = [
+    "MTOM"; "OEM"; "Fuel Mass"; "Payload"; ...
+    "Wing Area"; "Wing Span"; "Aspect Ratio"; ...
+    "Engine Type"; "Num Engines"; "Static Thrust (ea)"; "TSFC (cruise)"; ...
+    "CD0 (Zero-Lift)"; "Oswald Efficiency (e)"; "L/D max (@CL=0.5)"
+]';
+
+Value = [
+    sprintf("%.1f t", ADP.MTOM/1e3); ...
+    sprintf("%.1f t", ADP.OEM/1e3); ...
+    sprintf("%.1f t", ADP.Mf_Fuel * ADP.MTOM/1e3); ...
+    sprintf("%.1f t", ADP.TLAR.Payload/1e3); ...
+    sprintf("%.1f m^2", ADP.WingArea); ...
+    sprintf("%.1f m", ADP.Span); ...
+    sprintf("%.2f", ADP.AR()); ...
+    "UltraFan"; ...
+    "4"; ...
+    sprintf("%.1f kN", ADP.Thrust/4/1e3); ...
+    sprintf("%.2e SI", sfc_val); ...
+    sprintf("%.4f", ADP.AeroPolar.CD0); ...
+    sprintf("%.3f", ADP.AeroPolar.e); ...
+    sprintf("%.2f", 0.5/ADP.AeroPolar.CD(0.5))
+]';
+
+SpecTable = table(Category', Parameter', Value', 'VariableNames', ["Category", "Parameter", "Value"]);
+disp(SpecTable);
+
+% Check Aerodynamics Details
 if ~isempty(ADP.AeroPolar)
-    CD_check = ADP.AeroPolar.CD(CL_check);
-    fprintf('\nAERODYNAMICS:\n');
-    fprintf('CD0: %.4f\n', ADP.AeroPolar.CD0);
-    fprintf('L/D (CL=0.5): %.2f\n', CL_check/CD_check);
+    fprintf('\nDetailed Aerodynamics:\n');
+    fprintf('  Induced Factor (Beta): %.4f\n', ADP.AeroPolar.Beta);
 else
     fprintf('\nWarning: AeroPolar is empty (Sizing might have failed early).\n');
 end

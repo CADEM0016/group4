@@ -10,13 +10,16 @@ tr = -0.0083*SweepQtrChord + 0.4597;
 
 b = obj.Span;
 
-% FIX 1: correct wing area calculation (using Weight/Loading)
-% obj.WingLoading is in N/m^2 (Pascal), so we need Weight = MTOM * g
-if isempty(obj.WingLoading) || obj.WingLoading == 0
-    % fallback to B747-8F standard loading (~880 kg/m^2)
-    S = obj.MTOM / 880;
+% Use existing WingArea if set, otherwise calculate from loading (kg/m^2)
+if isprop(obj, 'WingArea') && ~isempty(obj.WingArea) && obj.WingArea > 1.0
+    S = obj.WingArea;
 else
-    S = obj.MTOM * 9.81 / obj.WingLoading;
+    % Fallback: obj.WingLoading is traditionally in kg/m^2
+    loading_kg_m2 = 880; % 747-8F default
+    if isprop(obj, 'WingLoading') && ~isempty(obj.WingLoading) && obj.WingLoading > 10.0
+        loading_kg_m2 = obj.WingLoading;
+    end
+    S = obj.MTOM / loading_kg_m2;
 end
 obj.WingArea = S;
 
