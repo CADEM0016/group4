@@ -1,56 +1,30 @@
-%% =========================================================================
 %  DOC_Standalone.m
-%  Direct Operating Cost (DOC) Analysis - CADEM0016 Group Design Project
-%  University of Bristol - MSc Aerospace Engineering
-%
-%  STANDALONE SCRIPT - No external files, functions, or toolboxes required.
-%  Simply press RUN (F5) and all results will be printed to the console
-%  and displayed as figures.
-%
 %  Based on:
-%    - CADEM0016 GDP Specification 2025, Section 4
-%    - Aircraft Economics Lecture Notes (Healy, Bristol 2026)
-%    - Raymer, Aircraft Design: A Conceptual Approach, 6th ed., Ch.18
-%
-%  Author  : Group 3 - Project Manager / Economics Engineer
-%  Date    : March 2026
-% =========================================================================
+%  CADEM0016 GDP Specification 2025, Section 4
+%  Aircraft Economics Lecture Notes (Healy, Bristol 2026)
+%  Raymer, Aircraft Design: A Conceptual Approach, 6th ed., Ch.18
 
-clear; clc; close all;
-
-fprintf('=========================================================\n');
-fprintf('  CADEM0016 - Direct Operating Cost (DOC) Analysis\n');
-fprintf('  University of Bristol - Group 3\n');
-fprintf('=========================================================\n\n');
-
-%% =========================================================================
 %  SECTION 1: AIRCRAFT DESIGN PARAMETERS
 %  These are the top-level aircraft parameters.
-%  Change these values to match your current MDO design point.
-% =========================================================================
-
-% --- Mass parameters ---
+%   Mass parameters 
 MTOM_kg        = 348700;      % [kg]   Maximum Take-Off Mass
-                              %        B777F reference = 348,700 kg (spec Table 6)
+                              
 OEM_kg         = 145000;      % [kg]   Operational Empty Mass
-                              %        B777F reference = 145,000 kg
+                              
 
 % --- Performance parameters (needed for Class II cost model) ---
 V_max_kmh      = 905;         % [km/h] Maximum cruise velocity
-                              %        B777F ~ Mach 0.84 at 35,000 ft ~ 905 km/h
+                              
 M_max          = 0.89;        % [-]    Maximum (dive) Mach number
 T_max_kN       = 513;         % [kN]   Max thrust per engine (GE90-115B ~ 513 kN)
 T3_K           = 1550;        % [K]    Turbine inlet temperature (approx GE90 class)
 N_engines      = 2;           % [-]    Number of engines
 
 % --- Airport / configuration ---
-% Taxi span ICAO code. Your aircraft has a 72m flight span but folds
-% to 65m taxi span => ICAO Code E (52-65m, parking $4000/day)
-% Options: 'C' = $1000/day, 'D' = $2000/day, 'E' = $4000/day, 'F' = $6000/day
 ICAO_code      = 'E';
 
 % --- Fuel ---
-% Options: 'kerosene' ($1.00/litre) or 'SAF' ($2.00/litre)
+% Options: 'kerosene' ($1.00/litre)
 fuel_type      = 'kerosene';
 
 fprintf('--- Aircraft Design Parameters ---\n');
@@ -61,34 +35,23 @@ fprintf('  Number of engines    : %d\n',          N_engines);
 fprintf('  Taxi ICAO code       : %s\n',          ICAO_code);
 fprintf('  Fuel type            : %s\n\n',        fuel_type);
 
-%% =========================================================================
 %  SECTION 2: FLEET AND MISSION PARAMETERS
-%  Based on the F1 2026 season (spec Table 3).
-%  14 fly-away legs require air freight.
-% =========================================================================
 
 fleet_size      = 8;          % [-]   Number of aircraft in the fleet
-                              %       8 B777F-equivalent aircraft needed
-                              %       (spec Appendix B: 736t / 92t per aircraft)
-
+                             
+                              
 N_landings      = 28;         % [-]   Landings per aircraft per season
-                              %       14 outbound + 14 return legs
-
+                             
 % Block fuel per aircraft per season
-% Estimate: average leg distance ~8000 km, fuel burn ~5 kg/km for B777F class
-% => 14 legs x 8000 km x 5 kg/km = 560,000 kg. Using 580,000 kg with reserves.
 block_fuel_kg   = 580000;     % [kg]  per aircraft per season
 
 % Flight hours per aircraft per season
-% Estimate: 14 legs x ~10 hrs average = 140 hrs outbound + 140 return = ~280 hrs
 flight_hours    = 280;        % [h]   per aircraft per season
 
 % Parking days per aircraft per season
-% 14 race venues x 4 days average parking = 56 days
 parking_days    = 56;         % [days] per aircraft per season
 
 % 5-year production quantity (for DAPCA IV Class II model)
-% For a bespoke F1 fleet, production quantity = fleet size
 N_production    = fleet_size; % [-]   assume all built within 5 years
 
 % Physical constants
@@ -101,18 +64,11 @@ fprintf('  Block fuel/aircraft  : %.0f tonnes\n', block_fuel_kg/1000);
 fprintf('  Flight hours/aircraft: %.0f h\n',      flight_hours);
 fprintf('  Parking days/aircraft: %d days\n\n',   parking_days);
 
-%% =========================================================================
-%  SECTION 3: CLASS I DOC CALCULATION
-%  Uses the simplified formulae directly from the GDP Specification
-%  Section 4. This is the Sprint 2 model.
-% =========================================================================
-
 fprintf('=========================================================\n');
 fprintf('  CLASS I DOC  (Sprint 2 - Specification Formulae)\n');
 fprintf('=========================================================\n\n');
 
 % ----- 3.1 Crew Salaries (Spec Section 4.1) -----
-% 4 crew per aircraft x $150,000/yr each = $600,000/aircraft/yr
 crew_per_ac       = 4;
 salary_per_crew   = 150000;                        % USD/yr
 cost_crew_per_ac  = crew_per_ac * salary_per_crew; % USD/yr per aircraft
@@ -124,7 +80,6 @@ fprintf('    %d crew x $%.0f/yr = $%.0f per aircraft\n', ...
 fprintf('    Fleet total : $%.0f /yr\n\n', cost_crew_total);
 
 % ----- 3.2 Landing Fees (Spec Section 4.2) -----
-% $25 per tonne of MTOM per landing
 MTOM_tonnes         = MTOM_kg / 1000;
 fee_per_landing     = 25 * MTOM_tonnes;           % USD per landing
 cost_landing_per_ac = fee_per_landing * N_landings;
@@ -136,7 +91,6 @@ fprintf('    $25/tonne x %.1f t x %d landings = $%.0f per aircraft\n', ...
 fprintf('    Fleet total : $%.0f /yr\n\n', cost_landing_total);
 
 % ----- 3.3 Parking Fees (Spec Section 4.3) -----
-% Daily rate by ICAO code (ground/taxi span)
 switch upper(ICAO_code)
     case 'C';  daily_parking_fee = 1000;
     case 'D';  daily_parking_fee = 2000;
@@ -154,7 +108,7 @@ fprintf('    ICAO Code %s => $%.0f/day x %d days = $%.0f per aircraft\n', ...
 fprintf('    Fleet total : $%.0f /yr\n\n', cost_parking_total);
 
 % ----- 3.4 Fuel Costs (Spec Section 4.4) -----
-% Kerosene: $1.00/litre,  SAF: $2.00/litre
+% Kerosene: $1.00/litre
 % Fuel density: 0.8 kg/litre
 switch lower(fuel_type)
     case 'kerosene';  fuel_price = 1.00;   % USD/litre
@@ -227,12 +181,8 @@ fprintf('  DOC per aircraft     : $%14.0f /yr\n', DOC_I/fleet_size);
 fprintf('  DOC per flight       : $%14.0f\n',     DOC_I/(fleet_size*N_landings));
 fprintf('----------------------------------------------------------\n\n');
 
-%% =========================================================================
+
 %  SECTION 4: CLASS II DOC CALCULATION
-%  Uses DAPCA IV method (Raymer Section 18) for initial cost estimate,
-%  then adds depreciation and interest.
-%  This is the Sprint 3 model.
-% =========================================================================
 
 fprintf('=========================================================\n');
 fprintf('  CLASS II DOC  (Sprint 3 - DAPCA IV + Financial Costs)\n');
@@ -302,8 +252,6 @@ fprintf('    Total (2026 USD)    = $%.2f M  (x CPI %.2f)\n', ...
 fprintf('    Per aircraft (2026) = $%.2f M\n\n', C_per_aircraft/1e6);
 
 % ----- 4.5 Class II Maintenance (Raymer Eq 18.12) -----
-% material cost [USD/FH] = 3.3*(Ca/1e6) + 14.2 + [58*(Ce/1e6) - 26.1]*Ne
-% Ca = aircraft cost less engines, Ce = cost per engine
 Ca = C_airframe;
 Ce = C_E_single * CPI_2012_to_2026;   % per engine in 2026 USD
 
@@ -318,9 +266,6 @@ fprintf('    Per aircraft     = $%.0f /yr\n', cost_maint_II_per_ac);
 fprintf('    Fleet total      = $%.0f /yr\n\n', cost_maint_II_total);
 
 % ----- 4.6 Financial Costs (Depreciation + Interest) -----
-% From Aircraft Economics lecture notes (Healy 2026):
-%   Depreciation = Total_Investment / 14   [USD/yr]  (14 yr economic life)
-%   Interest     = 0.05 x Total_Investment [USD/yr]
 dep_per_ac  = C_per_aircraft / 14;
 int_per_ac  = 0.05 * C_per_aircraft;
 cost_dep_total = fleet_size * dep_per_ac;
@@ -359,10 +304,7 @@ fprintf('  DOC per aircraft     : $%14.0f /yr\n', DOC_II/fleet_size);
 fprintf('  DOC per flight       : $%14.0f\n',     DOC_II/(fleet_size*N_landings));
 fprintf('----------------------------------------------------------\n\n');
 
-%% =========================================================================
 %  SECTION 5: SENSITIVITY STUDY 1 - DOC vs Fleet Size
-%  Required for poster deliverable (sensitivity of DOC to hyperparameters)
-% =========================================================================
 
 fprintf('=========================================================\n');
 fprintf('  SENSITIVITY STUDY 1: DOC vs Fleet Size\n');
@@ -377,7 +319,6 @@ DOC_II_fleet_total  = zeros(1, n_f);
 DOC_II_fleet_per_ac = zeros(1, n_f);
 
 % Total season fuel is fixed regardless of fleet size
-% (same total freight to move; more aircraft = each carries less)
 total_season_fuel_kg = block_fuel_kg * fleet_size;
 
 for i = 1:n_f
@@ -418,9 +359,7 @@ for i = 1:n_f
 end
 fprintf('\n');
 
-%% =========================================================================
 %  SECTION 6: SENSITIVITY STUDY 2 - DOC vs Fuel Type (Kerosene vs SAF)
-% =========================================================================
 
 fprintf('=========================================================\n');
 fprintf('  SENSITIVITY STUDY 2: Kerosene vs SAF\n');
@@ -445,10 +384,10 @@ fprintf('  SAF premium over Kerosene: $%.2f M/yr  (+%.1f%%)\n\n', ...
     100*fuel_premium/(fleet_size*block_fuel_litres*1.00 + ...
     cost_crew_total+cost_landing_total+cost_parking_total+cost_maint_total+cost_ins_total));
 
-%% =========================================================================
+
 %  SECTION 7: SENSITIVITY STUDY 3 - DOC vs MTOM
 %  Shows how DOC changes as aircraft gets heavier/lighter
-% =========================================================================
+
 
 fprintf('=========================================================\n');
 fprintf('  SENSITIVITY STUDY 3: DOC vs MTOM\n');
@@ -476,9 +415,8 @@ for cp = checkpoints
 end
 fprintf('\n');
 
-%% =========================================================================
 %  SECTION 8: FIGURES
-% =========================================================================
+
 
 %--- Figure 1: DOC Breakdown Pie Chart (Class I) ---
 figure('Name','Figure 1: Class I DOC Breakdown','NumberTitle','off', ...
@@ -555,9 +493,7 @@ legend({'DOC curve','Design Point (B777F ref)'}, ...
     'Location','northwest', 'FontSize', 10);
 grid on;
 
-%% =========================================================================
 %  SECTION 9: FINAL SUMMARY TABLE
-% =========================================================================
 
 fprintf('\n');
 fprintf('=========================================================\n');
@@ -591,11 +527,10 @@ fprintf('  Analysis complete. %d figures generated.\n', 4);
 fprintf('=========================================================\n\n');
 
 
-%% =========================================================================
+
 %  LOCAL HELPER FUNCTION (nested, no external file needed)
 %  Computes DAPCA IV programme cost for a given production quantity N_p
 %  Used only in the fleet size sensitivity loop above.
-% =========================================================================
 function C_prog = C_lab_scaled(Me,V,N_p,Nft,T_max_kN,M_max,T3_K,N_eng,eta_M)
     H_E = 5.18  * Me^0.777 * V^0.894 * N_p^0.163;
     H_T = 7.22  * Me^0.777 * V^0.696 * N_p^0.263;
