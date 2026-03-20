@@ -40,8 +40,8 @@ x_CoM_aft       = 0.44 * L_fus;  % [m]  Aft CoM limit
 x_CoM_nom       = 0.41 * L_fus;  % [m]  Nominal CoM (mean cruise)
 
 % --- Engine parameters ---
-engine_diameter  = 3.0;       % [m]    Engine fan diameter (GE9X class)
-engine_clearance = 0.46;      % [m]    Required ground clearance under engine
+engine_diameter  = 4.38;       % [m]    Engine fan diameter (GE9X class)
+engine_clearance = 0.9;      % [m]    Required ground clearance under engine
                               %        FAR-25: typically 18 inches = 0.457 m
 
 % --- Tail geometry (for tail strike check) ---
