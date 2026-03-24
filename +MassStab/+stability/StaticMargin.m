@@ -1,54 +1,81 @@
-%% MassStab.stability.StaticMargin — Neutral point & static margins
-%  Datcom-style, consistent with AeroPolar.m Beta/e framework
+% Static margin and neutral point estimation
+%
+% The neutral point is the CG location at which the aircraft is neutrally
+% stable (SM = 0).  It is computed from three contributions:
+%   1. Wing aerodynamic centre          (destabilising in pitch)
+%   2. Fuselage Munk moment             (destabilising in pitch)
+%   3. Horizontal tail restoring moment (stabilising in pitch)
+%
+% Static margin  SM = x_NP - x_CG  expressed as % MAC
+% CS-25 requires SM >= 5% MAC at all loading conditions.
+%
+% Tail volume coefficients are cross-checked against ADP values.
 
 function stab = StaticMargin(ADP, cg)
 
-wg  = MassStab.geom.Wing(ADP);
+w   = MassStab.geom.Wing(ADP);
+AR  = ADP.Span^2 / ADP.WingArea;
 M_c = ADP.TLAR.M_c;
-AR  = ADP.Span^2/ADP.WingArea;
-b2  = max(0.01, 1-M_c^2);
 
-% Lift-curve slopes  (Helmbold formula, AeroPolar.m style)
-CLa_w  = 2*pi*AR/(2+sqrt(4+AR^2*b2*(1+tand(wg.SweepQtrChord)^2/b2)));
-CLa_ht = 2*pi*5/(2+sqrt(4+5^2*b2));
+% Prandtl-Glauert compressibility factor
+beta = sqrt(max(0.01, 1 - M_c^2));
 
-% Fuselage destabilising (Munk)
-L_f   = ADP.CockpitLength + ADP.CabinLength + ADP.CabinRadius*1.48;
-dCM   = 1.3*(2*ADP.CabinRadius/ADP.Span)^2*(L_f^2*2*ADP.CabinRadius)/(ADP.WingArea*cg.MAC);
+% Wing lift-curve slope  —  Helmbold equation (subsonic, swept wing)
+CLa_wing = 2*pi*AR / (2 + sqrt(4 + (AR*beta)^2 * (1 + tand(w.sweep_qc)^2/beta^2)));
 
-% Downwash + HTP contribution
-d_eps = 2*CLa_w/(pi*AR);
-L_ht  = ADP.HtpPos - ADP.WingPos;
-eta_h = 0.90;
-x_np  = 24.0 - (dCM/CLa_w)*100 + ...
-        eta_h*(CLa_ht/CLa_w)*(1-d_eps)*(ADP.HtpArea/ADP.WingArea)*(L_ht/cg.MAC)*100;
+% HTP lift-curve slope  (AR_ht = 5 from empenage.m)
+CLa_htp  = 2*pi*5  / (2 + sqrt(4 + (5*beta)^2));
 
-% Tail volume check  (empenage.m)
-V_HT = ADP.HtpArea*L_ht/(ADP.WingArea*cg.MAC);
-V_VT = ADP.VtpArea*(ADP.VtpPos-ADP.WingPos)/(ADP.WingArea*ADP.Span);
+% Fuselage destabilising contribution  —  Munk moment formula
+L_fus     = ADP.CockpitLength + ADP.CabinLength + ADP.CabinRadius*1.48;
+dCM_da_fus = 1.3 * (2*ADP.CabinRadius / ADP.Span)^2 ...
+           * (L_fus^2 * 2*ADP.CabinRadius) / (ADP.WingArea * cg.MAC);
 
-stab.NP_pct    = x_np;
-stab.SM_MTOM   = x_np - cg.MTOM_pct;
-stab.SM_MC     = x_np - cg.MC_pct;
-stab.SM_MLW    = x_np - cg.MLW_pct;
-stab.V_HT      = V_HT;
-stab.V_VT      = V_VT;
-stab.CLa_w     = CLa_w;
-stab.CLa_ht    = CLa_ht;
+% Downwash gradient at the HTP  (finite-wing approximation)
+downwash_grad = 2 * CLa_wing / (pi * AR);
 
-fprintf('\n  Neutral Point = %.1f%% MAC\n', x_np);
-fprintf('  V_HT=%.4f  V_VT=%.4f\n', V_HT, V_VT);
-fprintf('  %-14s  %5.1f%%MAC  SM=%5.1f%%  %s\n','MTOM',    cg.MTOM_pct, stab.SM_MTOM, lbl(stab.SM_MTOM));
-fprintf('  %-14s  %5.1f%%MAC  SM=%5.1f%%  %s\n','Mid-Cruise',cg.MC_pct, stab.SM_MC,   lbl(stab.SM_MC));
-fprintf('  %-14s  %5.1f%%MAC  SM=%5.1f%%  %s\n','MLW',      cg.MLW_pct, stab.SM_MLW,  lbl(stab.SM_MLW));
+% HTP moment arm and efficiency factor
+L_htp  = ADP.HtpPos - ADP.WingPos;
+eta_htp = 0.90;   % HTP operates in wing downwash, reducing its effective q
 
-if all([stab.SM_MTOM stab.SM_MC stab.SM_MLW]>=5)
-    fprintf('  [PASS] All SM >= 5%% MAC  (CS-25)\n');
+% Neutral point location in % MAC (measured from LE of MAC)
+% Wing AC is assumed at 24% MAC for a swept transport wing
+x_ac_wing_pct = 24.0;
+x_NP_pct = x_ac_wing_pct                                               ...
+    - (dCM_da_fus / CLa_wing) * 100                                    ...   % fuselage term
+    + eta_htp * (CLa_htp / CLa_wing) * (1 - downwash_grad)            ...   % HTP term
+    * (ADP.HtpArea / ADP.WingArea) * (L_htp / cg.MAC) * 100;
+
+SM_MTOM = x_NP_pct - cg.MTOM_pct;
+SM_MC   = x_NP_pct - cg.MC_pct;
+SM_MLW  = x_NP_pct - cg.MLW_pct;
+
+% Tail volume coefficients  (cross-check against ADP.V_HT / ADP.V_VT)
+V_HT = ADP.HtpArea * L_htp                          / (ADP.WingArea * cg.MAC);
+V_VT = ADP.VtpArea * (ADP.VtpPos - ADP.WingPos)     / (ADP.WingArea * ADP.Span);
+
+stab.NP_pct  = x_NP_pct;
+stab.SM_MTOM = SM_MTOM;
+stab.SM_MC   = SM_MC;
+stab.SM_MLW  = SM_MLW;
+stab.V_HT    = V_HT;
+stab.V_VT    = V_VT;
+stab.CLa_w   = CLa_wing;
+stab.CLa_ht  = CLa_htp;
+
+fprintf('\nNeutral Point = %.1f%% MAC\n', x_NP_pct);
+fprintf('V_HT = %.4f  (ADP target %.4f)\n', V_HT, ADP.V_HT);
+fprintf('V_VT = %.4f  (ADP target %.4f)\n', V_VT, ADP.V_VT);
+
+fprintf('\n%-16s  %9s  %9s\n', 'Condition', 'CG [%%MAC]', 'SM [%%MAC]');
+fprintf('%s\n', repmat('-',1,38));
+fprintf('%-16s  %9.1f  %9.1f\n', 'MTOM',        cg.MTOM_pct, SM_MTOM);
+fprintf('%-16s  %9.1f  %9.1f\n', 'Mid-Cruise',  cg.MC_pct,   SM_MC);
+fprintf('%-16s  %9.1f  %9.1f\n', 'MLW',         cg.MLW_pct,  SM_MLW);
+
+if all([SM_MTOM SM_MC SM_MLW] >= 5)
+    fprintf('CS-25 check: PASS  (all SM >= 5%% MAC)\n');
 else
-    fprintf('  [FAIL] SM < 5%% MAC in at least one phase\n');
+    fprintf('CS-25 check: FAIL  (at least one phase SM < 5%% MAC)\n');
 end
-end
-
-function s=lbl(sm)
-    if sm<5,s='FAIL'; elseif sm<10,s='MARGINAL'; elseif sm<=30,s='GOOD'; else,s='OK'; end
 end

@@ -1,31 +1,22 @@
-%% MassStab.Run  — Entry point for Mass & Stability discipline
-%  CADEM0016 | GDP Group 3 | University of Bristol 2025/26
-%  Usage:  MassStab.Run()          % standalone with defaults
-%          MassStab.Run(ADP)       % pass existing ADP object
+% Mass & Stability discipline entry point  —  CADEM0016 GDP Group 3
+% Call:  MassStab.Run()          runs with default aircraft parameters
+%        MassStab.Run(ADP)       pass an existing ADP struct from the MDO
+%
+% Outputs
+%   massObj   component mass array  (cast.MassObj compatible)
+%   cg        CG envelope results
+%   stab      static margin and tail volume results
 
-function [massObj, cgOut, stabOut] = Run(ADP)
+function [massObj, cg, stab] = Run(ADP)
 
-if nargin < 1, ADP = MassStab.ADP(); end
+if nargin < 1
+    ADP = MassStab.ADP();
+end
 
-fprintf('\n=== Mass & Stability Module | Group 3 ===\n');
-
-% 1. Compute mass estimates
 [CI, CII, CIII] = MassStab.mass.Estimate(ADP);
-
-% 2. Build mass object array (cast.MassObj compatible)
-massObj = MassStab.mass.BuildMassObj(ADP, CIII);
-
-% 3. CG envelope
-cgOut = MassStab.stability.CG(ADP, massObj);
-
-% 4. Static margin & neutral point
-stabOut = MassStab.stability.StaticMargin(ADP, cgOut);
-
-% 5. OEI check
-MassStab.stability.OEI(ADP);
-
-% 6. Sensitivity studies + plots
-MassStab.sensitivity.Run(ADP, CI, CII, CIII, cgOut, stabOut);
-
-fprintf('\n=== Done ===\n');
+massObj         = MassStab.mass.BuildMassObj(ADP, CIII);
+cg              = MassStab.stability.CG(ADP, massObj);
+stab            = MassStab.stability.StaticMargin(ADP, cg);
+                  MassStab.stability.OEI(ADP);
+                  MassStab.sensitivity.Plots(ADP, CI, CII, CIII, cg, stab);
 end

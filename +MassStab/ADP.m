@@ -1,62 +1,62 @@
-%% MassStab.ADP — Default aircraft design parameters
-%  All values from +B777/ADP.m, +B747/ADP.m, Master Parameters table
-%  CADEM0016 | GDP Group 3
+% Aircraft Design Parameters  —  Group 3 concept wide-body freighter
+% All values taken from Master Parameters table, +B777/ADP.m, +B747/ADP.m
+% Units: kg, m, kN throughout unless noted
 
 function ADP = ADP()
 
-% Mass fractions  (B777.ADP / B747.ADP)
-ADP.MTOM        = 530000;           % [kg]
-ADP.OEM         = 200000;           % [kg]
-ADP.Mf_Fuel     = 180000/530000;    % [-]
-ADP.Mf_TOC      = 0.97;             % [-]
-ADP.Mf_Ldg      = 0.70;             % [-]
-ADP.Mf_res      = 0.038;            % [-]
+% ---- Top-level masses ------------------------------------------------
+ADP.MTOM         = 530000;           % Maximum take-off mass         [kg]
+ADP.OEM          = 200000;           % Operational empty mass target  [kg]
+ADP.Mf_Fuel      = 180000 / 530000;  % Fuel mass fraction             [-]
+ADP.Mf_TOC       = 0.97;             % Mass fraction at top of climb  [-]
+ADP.Mf_Ldg       = 0.70;             % Maximum landing mass fraction  [-]
+ADP.Mf_res       = 0.038;            % Reserve fuel fraction          [-]
 
-% Constraints  (ADP.m)
-ADP.ThrustToWeightRatio = 0.31;
-ADP.WingLoading         = 883;      % [kg/m^2]
+% ---- Constraint analysis outputs -------------------------------------
+ADP.ThrustToWeightRatio = 0.31;      % T/W at take-off                [-]
+ADP.WingLoading         = 883;       % W/S at take-off            [kg/m²]
 
-% Wing  (ADP.m + Size_747_Custom.m)
-ADP.Span        = 71.0;             % [m]
-ADP.WingArea    = 600;              % [m^2]
-ADP.KinkPos     = 7;                % [m]
-ADP.WingPos     = 30;               % [m]
-ADP.Mstar       = 0.855;            % [-]
-ADP.eta_fold    = 0.80;             % [-]  fold hinge station
-ADP.b_taxi      = 65.0;             % [m]  Code E taxi span
+% ---- Wing geometry ---------------------------------------------------
+ADP.Span         = 71.0;   % Flight span (folded tips deployed)       [m]
+ADP.b_taxi       = 65.0;   % Taxi span (folded tips up, ICAO Code E)  [m]
+ADP.WingArea     = 600;    % Reference wing area                      [m²]
+ADP.KinkPos      = 7;      % Spanwise position of trailing-edge kink  [m]
+ADP.WingPos      = 30;     % Wing aerodynamic centre along fuselage   [m]
+ADP.Mstar        = 0.855;  % Wing technology factor (drag-divergence) [-]
+ADP.eta_fold     = 0.80;   % Fold hinge at 80% semi-span              [-]
 
-% Empennage  (ADP.m + CG_Mass_estimations.docx)
-ADP.HtpPos      = 68;               % [m]
-ADP.VtpPos      = 65;               % [m]
-ADP.V_HT        = 0.9;              % [-]
-ADP.V_VT        = 0.07;             % [-]
-ADP.HtpArea     = 126.47;           % [m^2]
-ADP.VtpArea     = 85.09;            % [m^2]
+% ---- Empennage geometry and tail volume coefficients -----------------
+ADP.HtpPos   = 68;      % HTP aerodynamic centre along fuselage       [m]
+ADP.VtpPos   = 65;      % VTP aerodynamic centre along fuselage       [m]
+ADP.V_HT     = 0.9;     % Horizontal tail volume coefficient          [-]
+ADP.V_VT     = 0.07;    % Vertical tail volume coefficient            [-]
+ADP.HtpArea  = 126.47;  % Horizontal tail reference area              [m²]
+ADP.VtpArea  = 85.09;   % Vertical tail reference area                [m²]
 
-% Fuselage  (ADP.m)
-ADP.CockpitLength = 8;              % [m]
-ADP.CabinRadius   = 3.25;           % [m]
-ADP.CabinLength   = 76.3 - 8 - 3.25*2*1.48; % [m]
+% ---- Fuselage geometry -----------------------------------------------
+ADP.CockpitLength = 8;           % Nose section length                [m]
+ADP.CabinRadius   = 3.25;        % Fuselage outer radius (D = 6.5 m)  [m]
+ADP.CabinLength   = 76.3 - 8 - 3.25*2*1.48;  % Cylindrical barrel    [m]
 
-% Aerodynamics  (ADP.m)
-ADP.CD0         = 0.0171;
-ADP.e           = 0.810;
-ADP.Cl_max      = 1.5;
+% ---- Aerodynamics ----------------------------------------------------
+ADP.CD0    = 0.0171;   % Zero-lift drag coefficient (component build-up)
+ADP.e      = 0.810;    % Oswald efficiency factor
+ADP.Cl_max = 1.5;      % Maximum wing section lift coefficient
 
-% Propulsion  (engine.m + Master Params)
-ADP.N_eng           = 4;
-ADP.m_eng_each      = 7000;         % [kg]
-ADP.T_per_eng_kN    = 400;          % [kN]
+% ---- Propulsion  (4 × Rolls-Royce UltraFan class) -------------------
+ADP.N_eng        = 4;     % Number of engines
+ADP.m_eng_each   = 7000;  % Dry mass per engine                     [kg]
+ADP.T_per_eng_kN = 400;   % Sea-level static thrust per engine       [kN]
 
-% Landing gear  (landingGear.m)
-ADP.L_main_m    = 5.0;              % [m]
-ADP.L_nose_m    = 3.6;              % [m]
+% ---- Landing gear geometry -------------------------------------------
+ADP.L_main_m = 5.0;   % Extended main gear leg length                 [m]
+ADP.L_nose_m = 3.6;   % Extended nose gear leg length                 [m]
 
-% TLAR  (cast.TLAR.B777F + Size_747_Custom.m)
-ADP.TLAR.M_c        = 0.85;
-ADP.TLAR.Alt_cruise = 35000/3.28084;% [m]
-ADP.TLAR.Payload    = 150000;       % [kg]
-ADP.TLAR.Range      = 12200e3;      % [m]
-ADP.TLAR.Crew       = 4;
-ADP.TLAR.CrewMass   = (80+10)*4;    % [kg]
+% ---- Top-level aircraft requirements (TLAR) --------------------------
+ADP.TLAR.M_c        = 0.85;              % Cruise Mach number
+ADP.TLAR.Alt_cruise = 35000 / 3.28084;  % Cruise altitude           [m]
+ADP.TLAR.Payload    = 150000;            % Design payload            [kg]
+ADP.TLAR.Range      = 12200e3;           % Design range              [m]
+ADP.TLAR.Crew       = 4;                 % Flight crew + relief crew
+ADP.TLAR.CrewMass   = 90 * 4;           % Crew mass (90 kg each)    [kg]
 end
