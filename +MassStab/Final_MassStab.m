@@ -277,7 +277,7 @@ CG_ZFW = (OEW*x_OEW + Payload*x_payload) / (OEW + Payload);
 CG_MTOW_comp = (OEW*x_OEW + Fuel*CG_fuel_total + Payload*x_payload) / MTOW;
 
 % ---- SPECIFIED DESIGN OVERRIDES -----
-CG_MTOW = 34.54;   % specified design CG at MTOW (m from nose)
+CG_MTOW = 35.54;   % specified design CG at MTOW (m from nose)
 NP      = 36.43;   % specified neutral point      (m from nose)
 
 %% =========================================================================
